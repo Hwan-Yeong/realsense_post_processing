@@ -137,23 +137,49 @@
 
 ==========================================================================
 
-실행 시
+## 실행 시
 
 powershell (관리자권한 실행)
-
+```
 (연결된 디바이스 확인)
 $ usbipd list
 
 (타겟 디바이스 wsl 연결)
 $ usbipd attach --wsl --busid 7-4
-
+```
 
 
 wsl (ubuntu 22.04)
-
+```
 (디바이스 연결됐는지 확인)
 $ lsusb
+```
 
-(ros2 실행)
+### 빌드
+ - yolov7 빌드
+```
+$ cd ~/lh_ws
+$ colcon build --packages-select yolo_ros yolo_msgs yolo_bringup
+```
+
+ - realsense_processing 빌드
+```
+$ cd ~/lh_ws
+$ colcon build --packages-select realsense_post_processing
+```
+
+
+### ros2 실행
+
+- realsense 동작 실행
+```
 $ ros2 launch realsense2_camera rs_launch.py  pointcloud.enable:=true
+```
 
+ - yolov7 실행
+```
+$ ros2 launch yolo_bringup yolov8.launch.py \
+    device:=cpu \
+    input_image_topic:=/camera/camera/color/image_raw \
+    model:=yolov8n.pt
+```

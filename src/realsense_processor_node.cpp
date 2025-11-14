@@ -6,15 +6,22 @@ PointCloudProcessor::PointCloudProcessor() : Node("pointcloud_processor")
     // Subscribe to original PointCloud2
     pc_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "/camera/camera/depth/color/points", 10,
-        std::bind(&PointCloudProcessor::pc_callback, this, std::placeholders::_1));
+        std::bind(&PointCloudProcessor::pc_callback, this, std::placeholders::_1)
+    );
+
+    yolo_object_detection_sub_ = this->create_subscription<yolo_msgs::msg::DetectionArray>(
+        "/yolo/detections", 10,
+        std::bind(&PointCloudProcessor::yolo_detection_callback, this, std::placeholders::_1)
+    );
 
     // Publish filtered PointCloud2
-    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        "/camera/points_filtered", 10);
+    pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/camera/points_filtered", 10);
 }
 
 void PointCloudProcessor::pc_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
+    return;
+
     // Convert ROS2 PointCloud2 -> PCL
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::fromROSMsg(*msg, *cloud);
@@ -55,3 +62,17 @@ void PointCloudProcessor::pc_callback(const sensor_msgs::msg::PointCloud2::Share
     RCLCPP_INFO(this->get_logger(), "Filtered PointCloud published: %zu points", cloud_filtered->size());
 }
 
+void PointCloudProcessor::yolo_detection_callback(const yolo_msgs::msg::DetectionArray::SharedPtr msg)
+{
+    return;
+
+    auto objects = msg->detections;
+
+    for (auto object : objects) {
+        std::string class_name = object.class_name;
+        float socre = object.score;
+
+        RCLCPP_INFO(this->get_logger(), "class_name: %s, socre: %.3f", class_name.c_str(), socre);
+    }
+
+}
