@@ -45,3 +45,4 @@ install/
 log/
 .vscode/
 realsense-ros/
+bag/
