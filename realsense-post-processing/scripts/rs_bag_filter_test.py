@@ -13,40 +13,16 @@ RealSense .bag 재생 + post-processing 필터 비교 도구
 pip install pyrealsense2 opencv-python numpy
 """
 import argparse
+import os
+import sys
 import time
 
 import cv2
 import numpy as np
 import pyrealsense2 as rs
 
-
-def build_filters(a):
-    f = []
-    if a.decim > 1:
-        d = rs.decimation_filter()
-        d.set_option(rs.option.filter_magnitude, a.decim)
-        f.append(("decimation", d))
-    f.append(("threshold", rs.threshold_filter(a.min, a.max)))
-    if a.spatial or a.temporal:
-        f.append(("to_disparity", rs.disparity_transform(True)))
-    if a.spatial:
-        s = rs.spatial_filter()
-        s.set_option(rs.option.filter_magnitude, a.sp_mag)
-        s.set_option(rs.option.filter_smooth_alpha, a.sp_alpha)
-        s.set_option(rs.option.filter_smooth_delta, a.sp_delta)
-        s.set_option(rs.option.holes_fill, 0)
-        f.append(("spatial", s))
-    if a.temporal:
-        t = rs.temporal_filter()
-        t.set_option(rs.option.filter_smooth_alpha, a.tp_alpha)
-        t.set_option(rs.option.filter_smooth_delta, a.tp_delta)
-        t.set_option(rs.option.holes_fill, a.tp_persist)  # 0 = persistency off
-        f.append(("temporal", t))
-    if a.spatial or a.temporal:
-        f.append(("to_depth", rs.disparity_transform(False)))
-    if a.holefill:
-        f.append(("hole_filling", rs.hole_filling_filter()))
-    return f
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from common import filters as flt  # noqa: E402
 
 
 def colorize(depth_m, rng, size):
@@ -84,7 +60,7 @@ def main():
     prof.get_device().as_playback().set_real_time(False)
     scale = prof.get_device().first_depth_sensor().get_depth_scale()
 
-    filters = build_filters(a)
+    filters = flt.build_filters(flt.FilterConfig.from_args(a))
     print("filter chain:", " -> ".join(n for n, _ in filters))
 
     paused, idx, times = False, 0, []
@@ -97,9 +73,7 @@ def main():
             raw = frames.get_depth_frame()
 
             t0 = time.perf_counter()
-            out = raw
-            for _, f in filters:
-                out = f.process(out)
+            out = flt.apply_filters(filters, raw)
             dt = (time.perf_counter() - t0) * 1000
             times.append(dt)
 
